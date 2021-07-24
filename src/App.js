@@ -14,6 +14,8 @@ import {
   Typography,
   List,
   ListItem,
+  FormControl,
+  InputLabel,
   Select,
   Slider,
   Divider,
@@ -21,11 +23,13 @@ import {
 } from "@material-ui/core";
 
 import Navbar from "./components/Navbar";
+import LineCharts from "./components/LineCharts";
 import {
   filterData,
   filterEvolutionOfProductInRegion,
   products,
   years,
+  regions,
 } from "./utils";
 import "@fontsource/roboto";
 
@@ -48,6 +52,7 @@ const useStyles = makeStyles((theme) => ({
   },
   mapSidebar: {
     minWidth: 150,
+    padding: "10px",
     flexGrow: "1",
   },
 }));
@@ -62,6 +67,10 @@ const generateMapping = (minValue, maxValue) => {
 
 const D3Layer = ({ product, type, year }) => {
   const map = useMap(); // useMap has to be called from a Component
+
+  useEffect(() => {
+    console.log("updated!");
+  }, [product, type, year]);
 
   const drawChorograph = () => {
     const data = filterData(product, type, year);
@@ -151,108 +160,37 @@ const MapSizeBar = ({
   setYear,
 }) => {
   return (
-    <div>
-      <List className={sidebarClassName} component="nav">
-        <ListItem>
-          <Select
-            id="product-select"
-            value={product}
-            onChange={(e) => setProduct(e.target.value)}
-          >
-            {products.map((product) => (
-              <MenuItem key={product} value={product}>
-                {product}
-              </MenuItem>
-            ))}
-          </Select>
-        </ListItem>
-        <ListItem>
-          <Slider
-            key={"someUniqueKey"}
-            defaultValue={year}
-            valueLabelDisplay="auto"
-            step={1}
-            marks
-            min={2010}
-            max={2020}
-            onChangeCommitted={(e, newValue) => setYear(newValue)}
-          />
-        </ListItem>
-        <ListItem></ListItem>
-      </List>
-      <Divider />
-      <List component="nav">
-        <ListItem>
-          <Typography variant="h5">Departamento Over</Typography>
-        </ListItem>
-        <ListItem>
-          <Typography variant="h6">Producción: x</Typography>
-        </ListItem>
-        <ListItem>
-          <Typography variant="h6">Seco: y</Typography>
-        </ListItem>
-      </List>
-    </div>
+    <FormControl className={sidebarClassName}>
+      <InputLabel id="label-id">Producto</InputLabel>
+      <Select
+        labelId="label-id"
+        id="product-select"
+        value={product}
+        onChange={(e) => setProduct(e.target.value)}
+      >
+        {products.map((p) => (
+          <MenuItem key={p} value={p}>
+            {p}
+          </MenuItem>
+        ))}
+      </Select>
+      <Typography id="discrete-slider" gutterBottom>
+        Año
+      </Typography>
+      <Slider
+        key={"someUniqueKey"}
+        value={year}
+        valueLabelDisplay="auto"
+        step={1}
+        marks
+        min={2010}
+        max={2020}
+        onChangeCommitted={(e, newValue) => setYear(newValue)}
+      />
+    </FormControl>
   );
 };
 
-class Evolution extends React.Component {
-  componentDidMount() {
-    this.drawChart();
-  }
-
-  drawChart() {
-    const width = 700;
-    const height = 300;
-
-    const data = filterData("Soja", "Producción", 2020).map((o, i) => ({
-      x: i,
-      y: o.amount,
-    }));
-    console.log(data);
-    const data2 = filterEvolutionOfProductInRegion("Soja", "Producción", 8);
-    console.log(data2);
-    const maxAmount = Math.max.apply(
-      null,
-      data2.map((d) => d.amount)
-    );
-    const minAmount = Math.min.apply(
-      null,
-      data2.map((d) => d.amount)
-    );
-    console.log(minAmount);
-    console.log(maxAmount);
-
-    const xScale = d3.scaleLinear().domain([2009, 2021]).range([0, width]);
-    const yScale = d3
-      .scaleLinear()
-      .domain([minAmount, maxAmount])
-      .range([height, 0]);
-
-    const svg = d3
-      .select(this.node)
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height);
-    svg
-      .append("path")
-      .datum(data2)
-      .attr("fill", "none")
-      .attr("stroke", "steelblue")
-      .attr("stroke-width", 1.5)
-      .attr(
-        "d",
-        d3
-          .line()
-          .x((d) => xScale(d.year))
-          .y((d) => yScale(d.amount))
-      );
-  }
-
-  render() {
-    return <div ref={(node) => (this.node = node)} />;
-  }
-}
 const theme = createTheme();
 
 function Main() {
@@ -271,7 +209,7 @@ function Main() {
               <Route path="/evolution" exact>
                 <div>
                   <h4>Some evolution</h4>
-                  <Evolution />
+                  <LineCharts />
                 </div>
               </Route>
               <Route path="/points" exact>

@@ -34,7 +34,10 @@ const getAll = (propertyExtractor) => {
 const getAllProducts = () => getAll((row) => row.product);
 const getAllTypes = () => getAll((row) => row.type);
 const getAllYears = () => getAll((row) => row.year);
+const getAllAdministrativeRegionsIds = () =>
+  getAll((row) => row.administrative_region);
 
 export const products = getAllProducts();
 export const types = getAllTypes();
 export const years = getAllYears();
+export const regions = getAllAdministrativeRegionsIds();
