@@ -53,7 +53,7 @@ const LineCharts = () => {
       },
     };
     const myChart = new Chart(ctx, config);
-  }, []);
+  }, [data]);
   return <canvas id="myChart" width={1000} height={700} />;
 };
 

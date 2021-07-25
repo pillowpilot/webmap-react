@@ -68,60 +68,59 @@ const generateMapping = (minValue, maxValue) => {
 const D3Layer = ({ product, type, year }) => {
   const map = useMap(); // useMap has to be called from a Component
 
-  useEffect(() => {
-    console.log("updated!");
-  }, [product, type, year]);
+  /*
+   * Add an SVG into Leaflet's overlay pane and paths for every geodata.feature,
+   * however without any d data or filling.
+   */
+  if (d3.select("#mysvg").empty()) {
+    d3.select(map.getPanes().overlayPane).append("svg").attr("id", "mysvg");
+  }
+  d3.select("#mysvg")
+    .attr("overflow", "visible")
+    .selectAll("path")
+    .data(geodata.features)
+    .enter()
+    .append("path");
 
-  const drawChorograph = () => {
-    const data = filterData(product, type, year);
-    const amounts = data.map((entry) => entry.amount);
-    const minAmount = Math.min.apply(null, amounts);
-    const maxAmount = Math.max.apply(null, amounts);
-    const mapping = generateMapping(minAmount, maxAmount);
+  const data = filterData(product, type, year);
+  const amounts = data.map((entry) => entry.amount);
+  const minAmount = Math.min.apply(null, amounts);
+  const maxAmount = Math.max.apply(null, amounts);
+  const mapping = generateMapping(minAmount, maxAmount);
+  const extractRegionEntry = (regionCode) =>
+    data.filter((entry) => entry.administrative_region === regionCode)[0];
 
-    const extractRegionEntry = (regionCode) =>
-      data.filter((entry) => entry.administrative_region === regionCode)[0];
-
-    // const projection = d3.geoMercator().fitSize([width, height], geodata);
-    function projectPoint(x, y) {
-      const point = map.latLngToLayerPoint(L.latLng(y, x));
-      this.stream.point(point.x, point.y);
-    }
-    const projection = d3.geoTransform({
-      point: projectPoint,
+  // update fillings
+  d3.select("#mysvg")
+    .selectAll("path")
+    .attr("fill", (geoFeature) => {
+      const regionCode = Number(geoFeature.properties.ADM1_PCODE.substr(2));
+      const regionName = geoFeature.properties.ADM1_ES;
+      const regionEntry = extractRegionEntry(regionCode);
+      if (regionEntry) {
+        const color = mapping(regionEntry.amount);
+        return color;
+      } else {
+        return "black";
+      }
     });
-    const path = d3.geoPath().projection(projection);
 
-    let svg = d3.select(map.getPanes().overlayPane).append("svg");
-    svg.attr("overflow", "visible");
-    const paths = svg
-      .selectAll("path")
-      .data(geodata.features)
-      .enter()
-      .append("path");
-    // redraw the entire map, without removing the svg
-    const reset = () => {
-      const width = map.getSize().x;
-      const height = map.getSize().y;
-      svg.attr("width", width).attr("height", height);
-
-      paths.attr("d", path).style("fill", (geoFeature) => {
-        const regionCode = Number(geoFeature.properties.ADM1_PCODE.substr(2));
-        const regionName = geoFeature.properties.ADM1_ES;
-        const regionEntry = extractRegionEntry(regionCode);
-        if (regionEntry) {
-          const color = mapping(regionEntry.amount);
-          return color;
-        } else {
-          return "black";
-        }
-      });
-    };
-    map.on("zoom", reset);
-    reset();
+  // update paths
+  function projectPoint(x, y) {
+    const point = map.latLngToLayerPoint(L.latLng(y, x));
+    this.stream.point(point.x, point.y);
+  }
+  const projection = d3.geoTransform({
+    point: projectPoint,
+  });
+  const path = d3.geoPath().projection(projection);
+  const updatePaths = () => {
+    d3.select("#mysvg").selectAll("path").attr("d", path);
   };
 
-  useEffect(drawChorograph, []);
+  updatePaths();
+  map.on("zoom", updatePaths);
+
   return null;
 };
 
