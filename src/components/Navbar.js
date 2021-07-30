@@ -5,7 +5,7 @@ const Navbar = ({ classes }) => (
   <AppBar position="static">
     <Toolbar>
       <Typography variant="h6" className={classes.title}>
-        Reporte de Producción
+        Reporte de Residuos
       </Typography>
       <Button component={Link} to="/" color="inherit">
         Mapa

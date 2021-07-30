@@ -20,6 +20,10 @@ import {
   Slider,
   Divider,
   MenuItem,
+  Grid,
+  Paper,
+  CssBaseline,
+  Container,
 } from "@material-ui/core";
 
 import Navbar from "./components/Navbar";
@@ -61,7 +65,7 @@ const generateMapping = (minValue, maxValue) => {
   let map = d3
     .scaleLinear()
     .domain([minValue, maxValue])
-    .range(["brown", "steelblue"]);
+    .range(["white", "steelblue"]);
   return map;
 };
 
@@ -81,6 +85,14 @@ const D3Layer = ({ product, type, year }) => {
     .data(geodata.features)
     .enter()
     .append("path");
+
+  d3.select("#mysvg")
+    .selectAll("text")
+    .data(geodata.features)
+    .enter()
+    .append("text")
+    .attr("text-anchor", "middle")
+    .text((f) => f.properties["ADM1_ES"]);
 
   const data = filterData(product, type, year);
   const amounts = data.map((entry) => entry.amount);
@@ -117,9 +129,17 @@ const D3Layer = ({ product, type, year }) => {
   const updatePaths = () => {
     d3.select("#mysvg").selectAll("path").attr("d", path);
   };
+  const updateLabels = () => {
+    d3.select("#mysvg")
+      .selectAll("text")
+      .attr("x", (f) => path.centroid(f)[0])
+      .attr("y", (f) => path.centroid(f)[1]);
+  };
 
   updatePaths();
+  updateLabels();
   map.on("zoom", updatePaths);
+  map.on("zoom", updateLabels);
 
   return null;
 };
@@ -132,22 +152,30 @@ const Viz = ({ classes }) => {
   const [year, setYear] = useState(defaultYear);
 
   return (
-    <>
-      <MapContainer center={position} zoom={6} scrollWheelZoom={false}>
-        <D3Layer product={product} type={"Producción"} year={year} />
-        <TileLayer
-          attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    <Grid container>
+      <Grid item xs={10}>
+        <Paper elevation={3} style={{ height: "100%" }}>
+          <MapContainer center={position} zoom={7} scrollWheelZoom={false}>
+            <D3Layer product={product} type={"Residuo Seco"} year={year} />
+            <TileLayer
+              attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+              /*url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"*/
+              url="https://tiles.wmflabs.org/osm-no-labels/{z}/{x}/{y}.png"
+            />
+          </MapContainer>
+        </Paper>
+      </Grid>
+
+      <Grid item xs={2}>
+        <MapSizeBar
+          sidebarClassName={classes.mapSidebar}
+          product={product}
+          setProduct={setProduct}
+          year={year}
+          setYear={setYear}
         />
-      </MapContainer>
-      <MapSizeBar
-        sidebarClassName={classes.mapSidebar}
-        product={product}
-        setProduct={setProduct}
-        year={year}
-        setYear={setYear}
-      />
-    </>
+      </Grid>
+    </Grid>
   );
 };
 
@@ -159,34 +187,55 @@ const MapSizeBar = ({
   setYear,
 }) => {
   return (
-    <FormControl className={sidebarClassName}>
-      <InputLabel id="label-id">Producto</InputLabel>
-      <Select
-        labelId="label-id"
-        id="product-select"
-        value={product}
-        onChange={(e) => setProduct(e.target.value)}
-      >
-        {products.map((p) => (
-          <MenuItem key={p} value={p}>
-            {p}
-          </MenuItem>
-        ))}
-      </Select>
-      <Typography id="discrete-slider" gutterBottom>
-        Año
-      </Typography>
-      <Slider
-        key={"someUniqueKey"}
-        value={year}
-        valueLabelDisplay="auto"
-        step={1}
-        marks
-        min={2010}
-        max={2020}
-        onChangeCommitted={(e, newValue) => setYear(newValue)}
-      />
-    </FormControl>
+    <Paper elevation={3}>
+      <Grid container>
+        <Box width={1} height="100%" p={3}>
+          <Grid item xs={12}>
+            <FormControl
+              variant="outlined"
+              className={sidebarClassName}
+              fullWidth
+            >
+              <InputLabel id="label-id">Producto</InputLabel>
+              <Select
+                labelId="label-id"
+                value={product}
+                onChange={(e) => setProduct(e.target.value)}
+              >
+                {products.map((p) => (
+                  <MenuItem key={p} value={p}>
+                    {p}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>{" "}
+          <Grid item xs={12}>
+            <Box pl="13px" pr="10px">
+              <Typography
+                gutterBottom
+                color="textSecondary"
+                variant="caption"
+                align="center"
+              >
+                Año
+              </Typography>
+
+              <Slider
+                key={"someUniqueKey"}
+                value={year}
+                valueLabelDisplay="auto"
+                step={1}
+                marks
+                min={2010}
+                max={2020}
+                onChangeCommitted={(e, newValue) => setYear(newValue)}
+              />
+            </Box>
+          </Grid>
+        </Box>
+      </Grid>
+    </Paper>
   );
 };
 
@@ -196,31 +245,34 @@ function Main() {
   const classes = useStyles();
 
   return (
-    <ThemeProvider theme={theme}>
-      <Router>
-        <Box className={classes.root}>
-          <Navbar classes={classes} />
-          <Switch>
-            <Box className={classes.content}>
-              <Route path="/" exact>
-                <Viz classes={classes} />
-              </Route>
-              <Route path="/evolution" exact>
-                <div>
-                  <h4>Some evolution</h4>
-                  <LineCharts />
-                </div>
-              </Route>
-              <Route path="/points" exact>
-                <div>
-                  <h4>Some Points</h4>
-                </div>
-              </Route>
-            </Box>
-          </Switch>
-        </Box>
-      </Router>
-    </ThemeProvider>
+    <>
+      <CssBaseline />
+      <ThemeProvider theme={theme}>
+        <Router>
+          <Box className={classes.root}>
+            <Navbar classes={classes} />
+            <Switch>
+              <Box className={classes.content}>
+                <Route path="/" exact>
+                  <Viz classes={classes} />
+                </Route>
+                <Route path="/evolution" exact>
+                  <div>
+                    <h4>Some evolution</h4>
+                    <LineCharts />
+                  </div>
+                </Route>
+                <Route path="/points" exact>
+                  <div>
+                    <h4>Some Points</h4>
+                  </div>
+                </Route>
+              </Box>
+            </Switch>
+          </Box>
+        </Router>
+      </ThemeProvider>
+    </>
   );
 }
 

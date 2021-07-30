@@ -6,7 +6,7 @@ Chart.register(...registerables);
 
 const LineCharts = () => {
   const product = "Soja";
-  const type = "Producción";
+  const type = "Residuo Seco";
   const regionId = 8;
   const data = filterEvolutionOfProductInRegion(product, type, regionId);
 
